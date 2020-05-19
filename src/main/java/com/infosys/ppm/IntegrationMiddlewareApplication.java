@@ -10,6 +10,7 @@ import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Store;
+import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
@@ -111,7 +112,7 @@ public class IntegrationMiddlewareApplication {
 		}
 	}
 
-	@Scheduled(fixedRate = 1000)
+	@Scheduled(fixedRate = 60 * 1000)
 	void pollForTimesheetUpdates() {
 		LOGGER.info("polling timesheets...");
 		RestTemplate restTemplate = new RestTemplate();
@@ -129,7 +130,7 @@ public class IntegrationMiddlewareApplication {
 				String emailMesage = MessageFormat.format("Approval Required, Timesheet: {0}, Name: {1}, Date: {2}, Hours: {3}", t.getId(), t.getName(), t.getDate(), t.getHours());
 				message.setSubject(emailMesage);
 				message.setText(emailMesage);
-				// Transport.send(message);
+				Transport.send(message);
 				LOGGER.info("sending, {}", emailMesage);
 			} catch (MessagingException e) {
 				LOGGER.error("error, reading sending email", e);
@@ -163,7 +164,8 @@ public class IntegrationMiddlewareApplication {
 
 					for (int i = 0; i < tokens.length; ++i)
 						if (tokens[i].trim().startsWith("Timesheet: ")) {
-							String url = MessageFormat.format(approveTimesheetWSUrl, tokens[1].split(" ")[1]);
+							String url = MessageFormat.format(approveTimesheetWSUrl, tokens[1].trim().split(": ")[1]);
+							LOGGER.info("url: {}", url);
 							RestTemplate restTemplate = new RestTemplate();
 							ResponseEntity<Boolean> response = restTemplate.getForEntity(url, Boolean.class);
 							LOGGER.info("approval status: {}", response.getBody().booleanValue());
